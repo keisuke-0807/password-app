@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <!-- 通信を一切しない: 外部への接続・外部ファイルの読み込みを禁止 -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; form-action 'none'; base-uri 'none'">
 <meta name="referrer" content="no-referrer">
@@ -14,7 +14,7 @@
   [hidden] { display: none !important; }
   * { box-sizing: border-box; }
   body {
-    margin: 0; font-family: "Yu Gothic UI", "Meiryo", sans-serif;
+    margin: 0; font-family: "Yu Gothic UI", "Meiryo", -apple-system, sans-serif;
     background: #f4f5f7; color: #1f2328;
   }
   header {
@@ -24,7 +24,7 @@
   }
   h1 { font-size: 18px; margin: 0 12px 0 0; }
   input[type=search] {
-    flex: 1; min-width: 200px; font-size: 15px;
+    flex: 1; min-width: 160px; font-size: 15px;
     padding: 8px 10px; border: 1px solid #c4c8cf; border-radius: 6px;
   }
   button, .filebtn {
@@ -35,18 +35,24 @@
   button:hover, .filebtn:hover { background: #eef0f3; }
   .primary { background: #2563eb; border-color: #2563eb; color: #fff; }
   .primary:hover { background: #1d4ed8; }
+  .danger { color: #c62828; border-color: #e0b4b4; }
+  .danger.solid { background: #c62828; border-color: #c62828; color: #fff; }
   main { padding: 16px; max-width: 960px; margin: 0 auto; }
   #status { color: #59636e; font-size: 13px; margin: 0 0 12px; }
-  #drop {
+  #empty {
     border: 2px dashed #b6bcc5; border-radius: 10px; background: #fff;
-    padding: 48px 16px; text-align: center; color: #59636e;
+    padding: 40px 16px; text-align: center; color: #59636e;
   }
-  #drop.over { border-color: #2563eb; background: #eff4ff; }
-  #drop p { margin: 8px 0; }
+  #empty.over, body.over #empty { border-color: #2563eb; background: #eff4ff; }
+  #empty p { margin: 8px 0; }
   .card {
     background: #fff; border: 1px solid #d8dbe0; border-radius: 8px;
     padding: 12px 14px; margin-bottom: 10px;
   }
+  .card-head { display: flex; gap: 8px; align-items: flex-start; }
+  .card-head .titles { flex: 1; min-width: 0; }
+  .card-head .tools { display: flex; gap: 6px; }
+  .card-head .tools button { padding: 4px 10px; font-size: 13px; }
   .card h2 { font-size: 16px; margin: 0 0 4px; word-break: break-all; }
   .url { font-size: 13px; color: #2563eb; word-break: break-all; }
   .row {
@@ -55,55 +61,85 @@
   }
   .label { font-size: 12px; color: #59636e; }
   .value {
-    font-family: Consolas, "BIZ UDGothic", monospace; font-size: 15px;
+    font-family: Consolas, "BIZ UDGothic", ui-monospace, monospace; font-size: 15px;
     background: #f6f8fa; border: 1px solid #e1e4e8; border-radius: 4px;
-    padding: 5px 8px; word-break: break-all; user-select: all;
+    padding: 5px 8px; word-break: break-all; user-select: all; -webkit-user-select: all;
   }
   .btns { display: flex; gap: 6px; }
   .btns button { padding: 5px 10px; font-size: 13px; }
   .note { margin-top: 8px; font-size: 13px; color: #444c56; white-space: pre-wrap; word-break: break-all; }
   #toast {
-    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 20;
     background: #1f2328; color: #fff; padding: 8px 16px; border-radius: 6px; font-size: 14px;
+    max-width: 90vw; text-align: center;
   }
   .help { font-size: 13px; color: #59636e; line-height: 1.7; }
   .help code { background: #eef0f3; padding: 1px 4px; border-radius: 3px; }
+
+  /* 入力・確認の画面 */
+  .modal {
+    position: fixed; inset: 0; z-index: 10; background: rgba(0,0,0,.4);
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 40px 12px; overflow-y: auto;
+  }
+  .panel {
+    background: #fff; border-radius: 10px; padding: 16px; width: 100%; max-width: 480px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.2);
+  }
+  .panel h3 { margin: 0 0 12px; font-size: 17px; }
+  .panel p { margin: 0 0 12px; line-height: 1.6; }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 13px; color: #59636e; margin-bottom: 4px; }
+  .field input, .field textarea {
+    width: 100%; font: inherit; font-size: 16px; /* 16px未満だとiOSが拡大する */
+    padding: 8px 10px; border: 1px solid #c4c8cf; border-radius: 6px;
+  }
+  .field textarea { min-height: 64px; resize: vertical; }
+  .field .inline { display: flex; gap: 6px; }
+  .field .inline input { flex: 1; min-width: 0; font-family: Consolas, ui-monospace, monospace; }
+  .actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; margin-top: 4px; }
+  .err { color: #c62828; font-size: 13px; margin: -4px 0 8px; }
+
   /* iPhoneなど幅の狭い画面 */
   @media (max-width: 600px) {
     header { padding: 10px 12px; padding-top: max(10px, env(safe-area-inset-top)); }
     h1 { width: 100%; font-size: 17px; }
-    input[type=search] { font-size: 16px; } /* 16px未満だとiOSが拡大する */
-    #template, .pc-only { display: none !important; }
+    input[type=search] { font-size: 16px; width: 100%; flex-basis: 100%; }
+    .pc-only { display: none !important; }
     main { padding: 12px; }
     .row { grid-template-columns: 1fr auto; }
     .row .label { grid-column: 1 / -1; margin-bottom: -4px; }
     .btns button { padding: 8px 12px; font-size: 14px; }
-    #drop { padding: 32px 12px; }
+    #empty { padding: 28px 12px; }
+    .modal { padding: 16px 8px; }
   }
 </style>
 </head>
 <body>
 <header>
   <h1>ID/パスワード帳</h1>
-  <input type="search" id="q" placeholder="サービス名・ID・URL・メモで検索" autocomplete="off" disabled>
-  <label class="filebtn primary">ファイルを読み込む<input type="file" id="file" accept=".csv,.txt,text/csv,text/plain,text/comma-separated-values" hidden></label>
-  <button id="template" type="button">ひな形CSVを保存</button>
-  <button id="clear" type="button" hidden>閉じる</button>
+  <input type="search" id="q" placeholder="サービス名・ID・URL・メモで検索" autocomplete="off">
+  <button id="add" type="button" class="primary">＋追加</button>
+  <label class="filebtn">CSVを読み込む<input type="file" id="file" accept=".csv,.txt,text/csv,text/plain,text/comma-separated-values" hidden></label>
+  <button id="export" type="button">CSVに書き出す</button>
 </header>
 <main>
   <p id="status"></p>
-  <div id="drop">
-    <p class="pc-only"><strong>CSVファイルをここにドラッグ&ドロップ</strong></p>
-    <p>「ファイルを読み込む」からCSVを選んでください</p>
+  <div id="empty" hidden>
+    <p><strong>まだ登録がありません</strong></p>
+    <p>「＋追加」から登録するか、「CSVを読み込む」でまとめて取り込めます。</p>
+    <p class="pc-only">CSVファイルをこの画面にドラッグ&ドロップしても読み込めます。</p>
     <div class="help">
-      <p>1行目に見出しを入れてください。使える見出し：<br>
+      <p>CSVは1行目に見出しを入れてください：<br>
         <code>サービス名</code> <code>URL</code> <code>ID</code> <code>パスワード</code> <code>メモ</code><br>
-        （Chromeの「パスワードをエクスポート」で作ったCSV〈name, url, username, password, note〉もそのまま読めます）</p>
-      <p>読み込んだ内容はこの画面を閉じると消えます。ファイルは書き換えません。</p>
+        （Chromeの「パスワードをエクスポート」で作ったCSVもそのまま読めます）</p>
+      <p>登録した内容はこの端末のブラウザの中だけに保存され、外部には送りません。<br>
+        ブラウザの履歴・Webサイトデータを消すと消えるので、ときどき「CSVに書き出す」でバックアップしてください。</p>
     </div>
   </div>
   <div id="list"></div>
 </main>
+<div id="modal" class="modal" hidden><div class="panel" id="panel"></div></div>
 <div id="toast" hidden></div>
 
 <script>
@@ -141,6 +177,14 @@ function toCSVCell(v) {
   return /[",\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
 }
 
+const FIELDS = ['name', 'url', 'username', 'password', 'note'];
+const FIELD_LABELS = { name: 'サービス名', url: 'URL', username: 'ID', password: 'パスワード', note: 'メモ' };
+
+function toCSV(list) {
+  const rows = [FIELDS.map(k => FIELD_LABELS[k])].concat(list.map(e => FIELDS.map(k => e[k] || '')));
+  return '﻿' + rows.map(r => r.map(toCSVCell).join(',')).join('\r\n') + '\r\n';
+}
+
 // 見出しの名前 → 項目
 const HEADER_MAP = {
   name: ['サービス名', 'サービス', 'サイト名', 'サイト', '名前', 'name', 'title', 'service', 'site'],
@@ -149,10 +193,8 @@ const HEADER_MAP = {
   password: ['パスワード', 'pass', 'password', 'pw', 'login_password'],
   note: ['メモ', '備考', 'note', 'notes', 'memo', 'comment'],
 };
-// 見出しが分からないときの並び（Chromeのエクスポートと同じ）
-const DEFAULT_ORDER = ['name', 'url', 'username', 'password', 'note'];
 
-function norm(s) { return s.trim().toLowerCase().replace(/[\s_\-・]/g, ''); }
+function norm(s) { return (s || '').trim().toLowerCase().replace(/[\s_\-・]/g, ''); }
 
 function mapHeader(header) {
   const map = {};
@@ -171,8 +213,9 @@ function toEntries(rows) {
   let body = rows.slice(1);
   const headerFound = map.username !== undefined || map.password !== undefined;
   if (!headerFound) {
+    // 見出しが分からないときはChromeのエクスポートと同じ並びとみなす
     map = {};
-    DEFAULT_ORDER.forEach((k, idx) => { map[k] = idx; });
+    FIELDS.forEach((k, idx) => { map[k] = idx; });
     body = rows;
   }
   const get = (r, k) => (map[k] === undefined ? '' : (r[map[k]] || '').trim());
@@ -192,10 +235,67 @@ function decode(buf) {
   }
 }
 
+// 同じ内容の行は重ねて登録しない
+function sameEntry(a, b) { return FIELDS.every(k => (a[k] || '') === (b[k] || '')); }
+function mergeEntries(current, incoming) {
+  const out = current.slice();
+  let added = 0, skipped = 0;
+  for (const e of incoming) {
+    if (out.some(x => sameEntry(x, e))) { skipped++; continue; }
+    out.push(e); added++;
+  }
+  return { list: out, added, skipped };
+}
+
+// ---------- パスワード生成 ----------
+const SETS = {
+  upper: 'ABCDEFGHJKLMNPQRSTUVWXYZ',   // 見間違えやすい I O を除く
+  lower: 'abcdefghijkmnopqrstuvwxyz',  // l を除く
+  digit: '23456789',                   // 0 1 を除く
+  symbol: '!#$%&*+-=?@_',
+};
+function randInt(n) {
+  // 偏りが出ないよう、余りの部分は引き直す
+  const max = Math.floor(0x100000000 / n) * n;
+  const a = new Uint32Array(1);
+  do { crypto.getRandomValues(a); } while (a[0] >= max);
+  return a[0] % n;
+}
+function generatePassword(len = 16) {
+  const groups = Object.values(SETS);
+  const all = groups.join('');
+  const chars = groups.map(g => g[randInt(g.length)]); // 各種類を最低1文字
+  while (chars.length < len) chars.push(all[randInt(all.length)]);
+  for (let i = chars.length - 1; i > 0; i--) { const j = randInt(i + 1); [chars[i], chars[j]] = [chars[j], chars[i]]; }
+  return chars.join('');
+}
+
+// ---------- 保存（この端末のブラウザの中） ----------
+const STORE_KEY = 'pwbook.entries.v1';
+let entries = [];
+
+function newId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+function load() {
+  try {
+    const v = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
+    entries = Array.isArray(v) ? v : [];
+  } catch (e) { entries = []; }
+}
+function save() {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify(entries));
+    return true;
+  } catch (e) {
+    toast('保存できませんでした。プライベートブラウズでは保存できません');
+    return false;
+  }
+}
+function withIds(list) { return list.map(e => Object.assign({ id: newId() }, e)); }
+function sortKey(e) { return e.name || e.url || e.username || ''; }
+function sorted(list) { return list.slice().sort((a, b) => sortKey(a).localeCompare(sortKey(b), 'ja')); }
+
 // ---------- 画面 ----------
 const $ = id => document.getElementById(id);
-let entries = [];
-let fileName = '';
 
 function el(tag, props, ...children) {
   const e = document.createElement(tag);
@@ -209,7 +309,7 @@ function toast(msg) {
   const t = $('toast');
   t.textContent = msg; t.hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { t.hidden = true; }, 1600);
+  toastTimer = setTimeout(() => { t.hidden = true; }, 2000);
 }
 
 async function copyText(text, what) {
@@ -217,12 +317,12 @@ async function copyText(text, what) {
     await navigator.clipboard.writeText(text);
   } catch (e) {
     // クリップボードAPIが使えないときの予備
-    const ta = el('textarea', { value: text });
+    const ta = el('textarea', { value: text, readOnly: true });
     ta.style.position = 'fixed'; ta.style.opacity = '0';
     document.body.append(ta); ta.select();
     const ok = document.execCommand('copy');
     ta.remove();
-    if (!ok) { toast('コピーできませんでした。文字を選んで Ctrl+C でコピーしてください'); return; }
+    if (!ok) { toast('コピーできませんでした。文字を選んでコピーしてください'); return; }
   }
   toast(what + 'をコピーしました');
 }
@@ -258,13 +358,19 @@ function valueRow(label, value, what, secret) {
 
 function card(e) {
   const c = el('div', { className: 'card' });
-  c.append(el('h2', { textContent: e.name || e.url || '（名前なし）' }));
+  const titles = el('div', { className: 'titles' });
+  titles.append(el('h2', { textContent: e.name || e.url || '（名前なし）' }));
   const href = safeUrl(e.url);
   if (href) {
-    c.append(el('a', { className: 'url', href, textContent: e.url, target: '_blank', rel: 'noopener noreferrer' }));
+    titles.append(el('a', { className: 'url', href, textContent: e.url, target: '_blank', rel: 'noopener noreferrer' }));
   } else if (e.url) {
-    c.append(el('div', { className: 'url', textContent: e.url }));
+    titles.append(el('div', { className: 'url', textContent: e.url }));
   }
+  const edit = el('button', { type: 'button', textContent: '編集' });
+  edit.addEventListener('click', () => openEditor(e));
+  const del = el('button', { type: 'button', textContent: '削除', className: 'danger' });
+  del.addEventListener('click', () => confirmDelete(e));
+  c.append(el('div', { className: 'card-head' }, titles, el('div', { className: 'tools' }, edit, del)));
   if (e.username) c.append(valueRow('ID', e.username, 'ID', false));
   if (e.password) c.append(valueRow('パスワード', e.password, 'パスワード', true));
   if (e.note) c.append(el('div', { className: 'note', textContent: e.note }));
@@ -273,58 +379,179 @@ function card(e) {
 
 function render() {
   const q = norm($('q').value);
+  const all = sorted(entries);
   const hits = q
-    ? entries.filter(e => [e.name, e.url, e.username, e.note].some(s => norm(s).includes(q)))
-    : entries;
-  const list = $('list');
-  list.replaceChildren(...hits.map(card));
+    ? all.filter(e => [e.name, e.url, e.username, e.note].some(s => norm(s).includes(q)))
+    : all;
+  $('list').replaceChildren(...hits.map(card));
+  $('empty').hidden = entries.length > 0;
   $('status').textContent = entries.length
-    ? `${fileName}：${entries.length}件` + (q ? `（${hits.length}件が一致）` : '')
+    ? `${entries.length}件` + (q ? `（${hits.length}件が一致）` : '')
     : '';
 }
 
+// ---------- 入力・確認の画面 ----------
+function openModal(...children) {
+  $('panel').replaceChildren(...children);
+  $('modal').hidden = false;
+}
+function closeModal() {
+  $('modal').hidden = true;
+  $('panel').replaceChildren();
+}
+
+function field(key, value, opts = {}) {
+  const id = 'f-' + key;
+  const input = opts.multiline
+    ? el('textarea', { id, value: value || '' })
+    : el('input', { id, type: 'text', value: value || '' });
+  input.setAttribute('autocomplete', 'off');
+  input.setAttribute('autocapitalize', 'off');
+  input.setAttribute('autocorrect', 'off');
+  input.spellcheck = false;
+  let body = input;
+  if (opts.generate) {
+    const gen = el('button', { type: 'button', textContent: '自動で作る' });
+    gen.addEventListener('click', () => { input.value = generatePassword(16); });
+    body = el('div', { className: 'inline' }, input, gen);
+  }
+  return { wrap: el('div', { className: 'field' }, el('label', { htmlFor: id, textContent: FIELD_LABELS[key] }), body), input };
+}
+
+function openEditor(entry) {
+  const isNew = !entry;
+  const f = {
+    name: field('name', entry && entry.name),
+    url: field('url', entry && entry.url),
+    username: field('username', entry && entry.username),
+    password: field('password', entry && entry.password, { generate: true }),
+    note: field('note', entry && entry.note, { multiline: true }),
+  };
+  f.url.input.type = 'url';
+  f.url.input.placeholder = 'https://…';
+  const err = el('div', { className: 'err', hidden: true });
+  const cancel = el('button', { type: 'button', textContent: 'キャンセル' });
+  cancel.addEventListener('click', closeModal);
+  const ok = el('button', { type: 'button', textContent: '保存', className: 'primary' });
+  ok.addEventListener('click', () => {
+    const data = {};
+    FIELDS.forEach(k => { data[k] = f[k].input.value.trim(); });
+    if (!data.name && !data.url && !data.username && !data.password) {
+      err.textContent = 'サービス名・URL・ID・パスワードのどれかを入れてください';
+      err.hidden = false; return;
+    }
+    const before = entries;
+    if (isNew) {
+      entries = entries.concat([Object.assign({ id: newId() }, data)]);
+    } else {
+      entries = entries.map(x => (x.id === entry.id ? Object.assign({}, x, data) : x));
+    }
+    if (!save()) { entries = before; return; }
+    closeModal(); render();
+    toast(isNew ? '登録しました' : '更新しました');
+  });
+  openModal(
+    el('h3', { textContent: isNew ? '新しく登録' : '編集' }),
+    f.name.wrap, f.url.wrap, f.username.wrap, f.password.wrap, f.note.wrap,
+    err,
+    el('div', { className: 'actions' }, cancel, ok),
+  );
+  f.name.input.focus();
+}
+
+function confirmDelete(entry) {
+  const cancel = el('button', { type: 'button', textContent: 'キャンセル' });
+  cancel.addEventListener('click', closeModal);
+  const ok = el('button', { type: 'button', textContent: '削除する', className: 'danger solid' });
+  ok.addEventListener('click', () => {
+    const before = entries;
+    entries = entries.filter(x => x.id !== entry.id);
+    if (!save()) { entries = before; return; }
+    closeModal(); render(); toast('削除しました');
+  });
+  openModal(
+    el('h3', { textContent: '削除しますか？' }),
+    el('p', { textContent: `「${entry.name || entry.url || entry.username || '（名前なし）'}」を削除します。元に戻せません。` }),
+    el('div', { className: 'actions' }, cancel, ok),
+  );
+}
+
+// ---------- CSVの読み込み・書き出し ----------
 async function loadFile(file) {
   if (!file) return;
   const buf = await file.arrayBuffer();
-  const { entries: list, headerFound } = toEntries(parseCSV(decode(buf)));
-  if (!list.length) { toast('読み込める行がありませんでした'); return; }
-  entries = list.sort((a, b) => (a.name || a.url).localeCompare(b.name || b.url, 'ja'));
-  fileName = file.name;
-  $('drop').hidden = true;
-  $('clear').hidden = false;
-  $('q').disabled = false; $('q').value = ''; $('q').focus();
-  render();
-  toast(headerFound ? `${entries.length}件を読み込みました`
-                    : '見出しが見つからないため「サービス名,URL,ID,パスワード,メモ」の順として読みました');
+  const { entries: incoming, headerFound } = toEntries(parseCSV(decode(buf)));
+  if (!incoming.length) { toast('読み込める行がありませんでした'); return; }
+  const note = headerFound ? '' : '（見出しが見つからないため「サービス名,URL,ID,パスワード,メモ」の順として読みました）';
+
+  const apply = (mode) => {
+    const before = entries;
+    let msg;
+    if (mode === 'replace') {
+      entries = withIds(incoming);
+      msg = `${incoming.length}件に入れ替えました`;
+    } else {
+      const r = mergeEntries(entries, withIds(incoming));
+      entries = r.list;
+      msg = `${r.added}件を追加しました` + (r.skipped ? `（同じ内容の${r.skipped}件は飛ばしました）` : '');
+    }
+    if (!save()) { entries = before; return; }
+    closeModal(); $('q').value = ''; render(); toast(msg);
+  };
+
+  if (!entries.length) { apply('add'); if (note) toast(note); return; }
+
+  const cancel = el('button', { type: 'button', textContent: 'キャンセル' });
+  cancel.addEventListener('click', closeModal);
+  const add = el('button', { type: 'button', textContent: '追加する', className: 'primary' });
+  add.addEventListener('click', () => apply('add'));
+  const rep = el('button', { type: 'button', textContent: '入れ替える', className: 'danger' });
+  rep.addEventListener('click', () => apply('replace'));
+  openModal(
+    el('h3', { textContent: `${file.name} を読み込みます（${incoming.length}件）` }),
+    el('p', { textContent: `今の${entries.length}件に「追加」しますか？ それとも今の内容を消して「入れ替え」ますか？ ${note}` }),
+    el('div', { className: 'actions' }, cancel, rep, add),
+  );
 }
 
+function exportCSV() {
+  if (!entries.length) { toast('書き出す登録がありません'); return; }
+  const blob = new Blob([toCSV(sorted(entries))], { type: 'text/csv' });
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  const name = `passwords-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}.csv`;
+  const url = URL.createObjectURL(blob);
+  const a = el('a', { href: url, download: name });
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+  toast(`${name} を書き出しました`);
+}
+
+// ---------- イベント ----------
+$('add').addEventListener('click', () => openEditor(null));
+$('export').addEventListener('click', exportCSV);
 $('file').addEventListener('change', ev => { loadFile(ev.target.files[0]); ev.target.value = ''; });
 $('q').addEventListener('input', render);
-$('clear').addEventListener('click', () => {
-  entries = []; fileName = '';
-  $('list').replaceChildren(); $('status').textContent = '';
-  $('q').value = ''; $('q').disabled = true;
-  $('drop').hidden = false; $('clear').hidden = true;
-});
-$('template').addEventListener('click', () => {
-  const rows = [['サービス名', 'URL', 'ID', 'パスワード', 'メモ'],
-                ['例：楽天', 'https://www.rakuten.co.jp/', 'taro@example.com', 'ここにパスワード', '']];
-  const csv = '﻿' + rows.map(r => r.map(toCSVCell).join(',')).join('\r\n') + '\r\n';
-  const a = el('a', { href: 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv), download: 'passwords.csv' });
-  document.body.append(a); a.click(); a.remove();
-});
+$('modal').addEventListener('click', ev => { if (ev.target === $('modal')) closeModal(); });
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape' && !$('modal').hidden) closeModal(); });
 
-// ドラッグ&ドロップ（画面のどこに落としても読む）
+// ドラッグ&ドロップ（PC。画面のどこに落としても読む）
 ['dragenter', 'dragover'].forEach(t => document.addEventListener(t, ev => {
-  ev.preventDefault(); $('drop').classList.add('over');
+  ev.preventDefault(); document.body.classList.add('over');
 }));
 ['dragleave', 'drop'].forEach(t => document.addEventListener(t, ev => {
-  ev.preventDefault(); $('drop').classList.remove('over');
+  ev.preventDefault(); document.body.classList.remove('over');
 }));
 document.addEventListener('drop', ev => loadFile(ev.dataTransfer.files[0]));
 
+// 保存したデータが勝手に消されにくくする（対応しているブラウザのみ）
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+
+load();
+render();
+
 // テスト用に公開
-window.__pw = { parseCSV, toEntries, decode, safeUrl };
+window.__pw = { parseCSV, toEntries, decode, safeUrl, toCSV, mergeEntries, generatePassword, SETS };
 </script>
 </body>
 </html>
